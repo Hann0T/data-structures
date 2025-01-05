@@ -63,25 +63,18 @@ pub fn BinaryTree(comptime T: type) type {
             }
         }
 
-        pub fn inorder(self: Self, allocator: std.mem.Allocator) ![]T {
-            var res = std.ArrayList(T).init(allocator);
-            defer res.deinit();
-
+        pub fn inorder(self: Self, visited: *std.ArrayList(T)) !void {
             if (self.left) |left| {
-                const list = try left.inorder(allocator);
-                defer allocator.free(list);
-                try res.appendSlice(list);
+                try left.inorder(visited);
             }
 
-            try res.append(self.value);
+            try visited.append(self.value);
 
             if (self.right) |right| {
-                const list = try right.inorder(allocator);
-                defer allocator.free(list);
-                try res.appendSlice(list);
+                try right.inorder(visited);
             }
 
-            return try res.toOwnedSlice();
+            return;
         }
     };
 }
@@ -165,5 +158,8 @@ test "Binary Tree inorder" {
     try b_tree.insert(26);
 
     const expected = [_]u16{ 4, 5, 6, 7, 12, 14, 16, 26 };
-    try std.testing.expectEqualSlices(u16, try b_tree.inorder(allocator), expected[0..]);
+    var actual = std.ArrayList(u16).init(allocator);
+    try b_tree.inorder(&actual);
+
+    try std.testing.expectEqualSlices(u16, expected[0..], try actual.toOwnedSlice());
 }
