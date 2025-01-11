@@ -1,5 +1,6 @@
 const std = @import("std");
 const print = std.debug.print;
+const Queue = @import("queue.zig").Queue;
 
 pub fn BinaryTree(comptime T: type) type {
     return struct {
@@ -63,6 +64,10 @@ pub fn BinaryTree(comptime T: type) type {
             }
         }
 
+        // type of depth first search:
+        // preorder
+        // inorder
+        // postorder
         pub fn inorder(self: Self, visited: *std.ArrayList(T)) !void {
             if (self.left) |left| {
                 try left.inorder(visited);
@@ -75,6 +80,30 @@ pub fn BinaryTree(comptime T: type) type {
             }
 
             return;
+        }
+
+        pub fn breadth_first_search(self: *Self, needle: T) !bool {
+            var queue = Queue(*Self).init(self.allocator);
+            defer queue.deinit();
+
+            try queue.push(self);
+            while (queue.pop()) |node| {
+                if (node.value == needle) {
+                    return true;
+                }
+
+                if (node.left) |left| {
+                    try queue.push(left);
+                }
+
+                if (node.right) |right| {
+                    try queue.push(right);
+                }
+
+                print("breadth_first_search node: {any}\n", .{node.value});
+            }
+
+            return false;
         }
     };
 }
@@ -162,4 +191,57 @@ test "Binary Tree inorder" {
     try b_tree.inorder(&actual);
 
     try std.testing.expectEqualSlices(u16, expected[0..], try actual.toOwnedSlice());
+}
+
+test "Binary Tree breadth_first_search" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    var b_tree = BinaryTree(u16).init(allocator, 12);
+    try std.testing.expectEqual(b_tree.left, null);
+    try std.testing.expectEqual(b_tree.right, null);
+
+    try b_tree.insert(5);
+    try b_tree.insert(16);
+    try b_tree.insert(4);
+    try b_tree.insert(7);
+    try b_tree.insert(6);
+    try b_tree.insert(14);
+    try b_tree.insert(26);
+
+    const expected = [_]u16{ 4, 5, 6, 7, 12, 14, 16, 26 };
+    var actual = std.ArrayList(u16).init(allocator);
+    try b_tree.inorder(&actual);
+
+    try std.testing.expectEqualSlices(u16, expected[0..], try actual.toOwnedSlice());
+
+    print("BFS Testing new needle\n", .{});
+    try std.testing.expect(try b_tree.breadth_first_search(12));
+    // should print:
+    // nothing
+    print("nothing\n", .{});
+
+    print("BFS Testing new needle\n", .{});
+    try std.testing.expect(try b_tree.breadth_first_search(6));
+    // should print:
+    // breadth_first_search node: 12
+    // breadth_first_search node: 5
+    // breadth_first_search node: 16
+    // breadth_first_search node: 4
+    // breadth_first_search node: 7
+    // breadth_first_search node: 14
+    // breadth_first_search node: 26
+
+    print("BFS Testing new needle\n", .{});
+    try std.testing.expect(!try b_tree.breadth_first_search(6000));
+    // should print:
+    // breadth_first_search node: 12
+    // breadth_first_search node: 5
+    // breadth_first_search node: 16
+    // breadth_first_search node: 4
+    // breadth_first_search node: 7
+    // breadth_first_search node: 14
+    // breadth_first_search node: 26
+    // breadth_first_search node: 6
 }
