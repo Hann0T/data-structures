@@ -105,6 +105,23 @@ pub fn BinaryTree(comptime T: type) type {
 
             return false;
         }
+
+        pub fn compare(a: ?*Self, b: ?*Self) bool {
+            if (a == null and b == null) {
+                return true;
+            }
+
+            if (a == null or b == null) {
+                return false;
+            }
+
+            if (a.?.value != b.?.value) {
+                return false;
+            }
+
+            return Self.compare(a.?.left, b.?.left) and Self.compare(a.?.right, b.?.right);
+            // return compare(a.?.left, b.?.left) and compare(a.?.right, b.?.right); // works too!
+        }
     };
 }
 
@@ -244,4 +261,41 @@ test "Binary Tree breadth_first_search" {
     // breadth_first_search node: 14
     // breadth_first_search node: 26
     // breadth_first_search node: 6
+}
+
+test "Binary Tree comparition" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    var a_tree = BinaryTree(u16).init(allocator, 12);
+    try std.testing.expectEqual(a_tree.left, null);
+    try std.testing.expectEqual(a_tree.right, null);
+    try a_tree.insert(5);
+    try a_tree.insert(16);
+    try a_tree.insert(4);
+    try a_tree.insert(7);
+    try a_tree.insert(6);
+    try a_tree.insert(14);
+    try a_tree.insert(26);
+
+    var b_tree = BinaryTree(u16).init(allocator, 12);
+    try std.testing.expectEqual(b_tree.left, null);
+    try std.testing.expectEqual(b_tree.right, null);
+    try b_tree.insert(5);
+    try b_tree.insert(16);
+    try b_tree.insert(4);
+    try b_tree.insert(7);
+    try b_tree.insert(6);
+    try b_tree.insert(14);
+    try b_tree.insert(26);
+
+    var c_tree = BinaryTree(u16).init(allocator, 500);
+    try std.testing.expectEqual(c_tree.left, null);
+    try std.testing.expectEqual(c_tree.right, null);
+    try c_tree.insert(16);
+
+    try std.testing.expect(BinaryTree(u16).compare(&a_tree, &b_tree));
+    try std.testing.expectEqual(false, BinaryTree(u16).compare(&a_tree, &c_tree));
+    try std.testing.expectEqual(false, BinaryTree(u16).compare(&b_tree, &c_tree));
 }
