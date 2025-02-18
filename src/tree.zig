@@ -82,6 +82,28 @@ pub fn BinaryTree(comptime T: type) type {
             return;
         }
 
+        pub fn search(self: *Self, needle: T) bool {
+            return depth_first_search(&self, needle);
+        }
+
+        fn depth_first_search(node: ?*Self, needle: T) bool {
+            if (node == null) {
+                return false;
+            }
+
+            const curr_value = node.?.value;
+
+            if (curr_value == needle) {
+                return true;
+            }
+
+            if (needle > curr_value) {
+                return depth_first_search(node.?.right, needle);
+            }
+
+            return depth_first_search(node.?.left, needle);
+        }
+
         pub fn breadth_first_search(self: *Self, needle: T) !bool {
             var queue = Queue(*Self).init(self.allocator);
             defer queue.deinit();
@@ -106,15 +128,23 @@ pub fn BinaryTree(comptime T: type) type {
             return false;
         }
 
+        pub fn delete(self: Self, item: T) ?T {
+            _ = self;
+            _ = item;
+        }
+
         pub fn compare(a: ?*Self, b: ?*Self) bool {
+            // structural check
             if (a == null and b == null) {
                 return true;
             }
 
+            // structural check
             if (a == null or b == null) {
                 return false;
             }
 
+            // value check
             if (a.?.value != b.?.value) {
                 return false;
             }
@@ -298,4 +328,26 @@ test "Binary Tree comparition" {
     try std.testing.expect(BinaryTree(u16).compare(&a_tree, &b_tree));
     try std.testing.expectEqual(false, BinaryTree(u16).compare(&a_tree, &c_tree));
     try std.testing.expectEqual(false, BinaryTree(u16).compare(&b_tree, &c_tree));
+}
+
+test "Binary Tree depth_first_search" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    const allocator = arena.allocator();
+    defer arena.deinit();
+
+    var b_tree = BinaryTree(u16).init(allocator, 12);
+    try std.testing.expectEqual(b_tree.left, null);
+    try std.testing.expectEqual(b_tree.right, null);
+
+    try b_tree.insert(5);
+    try b_tree.insert(16);
+    try b_tree.insert(4);
+    try b_tree.insert(7);
+    try b_tree.insert(6);
+    try b_tree.insert(14);
+    try b_tree.insert(26);
+
+    try std.testing.expect(b_tree.depth_first_search(12));
+    try std.testing.expect(b_tree.depth_first_search(26));
+    try std.testing.expect(!b_tree.depth_first_search(10000));
 }
